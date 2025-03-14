@@ -41,11 +41,8 @@ def create_dataset(medical_dir, non_medical_dir, output_csv):
     print(f"Dataset saved to {output_csv}")
 
 # Paths to your directories and output file
-# medical_pdfs_dir = "../waste_data/Yes"
-# non_medical_pdfs_dir = "../waste_data/No"
-# output_csv_path = "../New_Data/waste_train.csv"
-medical_pdfs_dir = "../Data/Finetune_Data/Yes"
-non_medical_pdfs_dir = "../Data/Finetune_Data/No"
-output_csv_path = "../New_Data/train.csv"
+medical_pdfs_dir = "../NLP/pdf_data/waste_12/Yes"
+non_medical_pdfs_dir = "../NLP/pdf_data/waste_12/No"
+output_csv_path = "../NLP/csv_data/waste_12.csv"
 # Create the dataset
 create_dataset(medical_pdfs_dir, non_medical_pdfs_dir, output_csv_path)
