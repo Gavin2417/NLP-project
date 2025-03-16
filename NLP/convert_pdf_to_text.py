@@ -1,15 +1,27 @@
 import os
 import pandas as pd
 import fitz  # PyMuPDF
-
+import re
 def extract_text_from_pdf(pdf_path):
     try:
         doc = fitz.open(pdf_path)
-        text = ""
+        full_text = ""
         for page_num in range(doc.page_count):
             page = doc.load_page(page_num)
-            text += page.get_text()
-        return text
+            full_text += page.get_text().strip()
+        
+        # Define regex patterns for abstract and introduction to handle both normal and spaced-out letters.
+        abstract_pattern = r'(?:abstract|a\s*?b\s*?s\s*?t\s*?r\s*?a\s*?c\s*?t)'
+        introduction_pattern = r'(?:introduction|i\s*?n\s*?t\s*?r\s*?o\s*?d\s*?u\s*?c\s*?t\s*?i\s*?o\s*?n)'
+        
+        # Use regex to extract text from "abstract" to "introduction"
+        pattern = re.compile(abstract_pattern + r'(.*?)' + r'(?=' + introduction_pattern + r')', re.IGNORECASE | re.DOTALL)
+        match = pattern.search(full_text)
+        if match:
+            extracted_text = match.group(1).strip()
+            return extracted_text
+        else:
+            return full_text
     except Exception as e:
         print(f"Error extracting text from {pdf_path}: {e}")
         return ""
@@ -41,8 +53,8 @@ def create_dataset(medical_dir, non_medical_dir, output_csv):
     print(f"Dataset saved to {output_csv}")
 
 # Paths to your directories and output file
-medical_pdfs_dir = "../NLP/pdf_data/waste_12/Yes"
-non_medical_pdfs_dir = "../NLP/pdf_data/waste_12/No"
-output_csv_path = "../NLP/csv_data/waste_12.csv"
+medical_pdfs_dir = "../NLP/pdf_data/waste_40/Yes"
+non_medical_pdfs_dir = "../NLP/pdf_data/waste_40/No"
+output_csv_path = "../NLP/csv_data/waste_40.csv"
 # Create the dataset
 create_dataset(medical_pdfs_dir, non_medical_pdfs_dir, output_csv_path)
