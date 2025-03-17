@@ -22,6 +22,7 @@ def create_dataset(medical_dir, non_medical_dir, output_csv):
         if filename.endswith(".pdf"):
             pdf_path = os.path.join(medical_dir, filename)
             text = extract_text_from_pdf(pdf_path)
+            print(text)
             if text:
                 data.append({"text": text, "label": 1})
 
@@ -41,9 +42,11 @@ def create_dataset(medical_dir, non_medical_dir, output_csv):
     print(f"Dataset saved to {output_csv}")
 
 # Paths to your directories and output file
+# medical_pdfs_dir = "../waste_data/Yes"
+# non_medical_pdfs_dir = "../waste_data/No"
+# output_csv_path = "../New_Data/waste_train.csv"
 medical_pdfs_dir = "../Data/Finetune_Data/Yes"
 non_medical_pdfs_dir = "../Data/Finetune_Data/No"
 output_csv_path = "../New_Data/train.csv"
-
 # Create the dataset
 create_dataset(medical_pdfs_dir, non_medical_pdfs_dir, output_csv_path)
