@@ -9,14 +9,6 @@ def extract_text_from_pdf(pdf_path):
         for page_num in range(doc.page_count):
             page = doc.load_page(page_num)
             full_text += page.get_text().strip()
-        # pattern = r'(?mi)^\s*(References|Bibliography|Literature\s+Cited)\s*$'
-    
-        # # Search for the pattern in the text
-        # match = re.search(pattern, full_text)
-        # if match:
-        #     # Remove everything from the header onwards
-        #     full_text = full_text[:match.start()]
-        
         return full_text
     except Exception as e:
         print(f"Error extracting text from {pdf_path}: {e}")
@@ -49,8 +41,8 @@ def create_dataset(medical_dir, non_medical_dir, output_csv):
     print(f"Dataset saved to {output_csv}")
 
 # Paths to your directories and output file
-medical_pdfs_dir = "../NLP/pdf_data/waste_40/Yes"
-non_medical_pdfs_dir = "../NLP/pdf_data/waste_40/No"
-output_csv_path = "../NLP/csv_data/waste_40.csv"
+medical_pdfs_dir = "../Final/pdf_data/waste_40/Yes"
+non_medical_pdfs_dir = "../Final/pdf_data/waste_40/No"
+output_csv_path = "../Final/csv_data/waste_40.csv"
 # Create the dataset
 create_dataset(medical_pdfs_dir, non_medical_pdfs_dir, output_csv_path)
