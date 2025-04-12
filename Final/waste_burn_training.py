@@ -81,7 +81,7 @@ def predict_label_for_pdf(pdf_path, model, tokenizer, device):
         
         with torch.no_grad():
             outputs = model(**inputs)
-            logits = outputs.logits  # shape [1, num_labels]
+            logits = outputs.logits  
             all_logits.append(logits)
     
     # Aggregate predictions by averaging the logits across chunks.
@@ -116,6 +116,7 @@ def process_pdfs_after_training(directory_path, output_csv, model, tokenizer, de
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train on a limited number of samples per class.")
     parser.add_argument("--count", type=int, default=40, help="Number of 'YES' samples to use")
+    parser.add_argument("--epochs", type=int, default=2, help="Number of epochs to train")
     args = parser.parse_args()
 
     waste_data = pd.read_csv("csv_data/waste_40.csv")
@@ -127,7 +128,7 @@ if __name__ == "__main__":
 
     # Combine and shuffle
     waste_data = pd.concat([yes_samples, no_samples]).sample(frac=1).reset_index(drop=True)
-
+    print(f"Total samples after filtering: {len(waste_data)}")
     # Convert your DataFrame to a Hugging Face Dataset
     dataset = Dataset.from_pandas(waste_data)
 
@@ -142,8 +143,34 @@ if __name__ == "__main__":
     waste_model.load_state_dict(torch.load("medical_modle.pth", map_location=device), strict=False)
     waste_model = waste_model.to(device)
 
+    # Training arguments
+    training_args = TrainingArguments(
+        output_dir="./temp",
+        evaluation_strategy="no",
+        save_strategy="epoch",
+        learning_rate=2e-5,
+        per_device_train_batch_size=16,
+        num_train_epochs=args.epochs,
+        weight_decay=0.01,
+        logging_steps=10,
+        load_best_model_at_end=False,
+        metric_for_best_model="accuracy",
+        save_total_limit=2
+    )
+
+    # Initialize Trainer
+    trainer = Trainer(
+        model=waste_model,
+        args=training_args,
+        train_dataset=dataset_tokenized,
+        tokenizer=tokenizer,
+        compute_metrics=compute_metrics
+    )
+    # Fine-tune the model on the chunked training data
+    trainer.train()
+
     pdfs_dir = "pdf_data/test"
-    output_csv_path = f"result/test_predictions_{args.count}.csv"
+    output_csv_path = f"result/test_predictions_{args.count}_{args.epochs}.csv"
 
     process_pdfs_after_training(
         directory_path=pdfs_dir,
