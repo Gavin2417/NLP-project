@@ -138,6 +138,7 @@ if __name__ == "__main__":
 
     # Tokenize the chunked dataset
     dataset_chunked = Dataset.from_dict(waste_data.to_dict(orient='list'))
+    print(f"Total samples after chunking: {len(dataset_chunked)}")
     dataset_tokenized = dataset_chunked.map(tokenize_function, batched=True)
     dataset_tokenized.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
 

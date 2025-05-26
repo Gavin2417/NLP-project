@@ -179,7 +179,7 @@ if __name__ == "__main__":
         os.makedirs("result")
     if not os.path.exists(f"result/{args.folder}"):
         os.makedirs(f"result/{args.folder}")
-    output_csv_path = f"result/{args.folder}/test_predictions_{args.count}_{args.epochs}_half.csv"
+    output_csv_path = f"result/{args.folder}/test_predictions_{args.count}_{args.epochs}_full.csv"
 
     process_pdfs_after_training(
         directory_path=pdfs_dir,
