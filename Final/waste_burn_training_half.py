@@ -10,22 +10,25 @@ import fitz
 import argparse
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased')
+tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased',clean_up_tokenization_spaces=True)
 accuracy_metric = evaluate.load("accuracy")
 
-def chunk_text(text, tokenizer, max_length=512):
-    # Encode without adding special tokens to get raw token ids
-    tokens = tokenizer.encode(text, add_special_tokens=False)
-    # Reserve two tokens for [CLS] and [SEP]
-    chunk_size = max_length - 2
+def chunk_text(text, tokenizer, max_length=512, stride=256):
+    text = text.replace("\n", " ").strip()  # Clean up the text
+    # print(text)
+    encoding = tokenizer(
+        text,
+        truncation=True,
+        max_length=max_length,
+        stride=stride,
+        return_overflowing_tokens=True,
+        padding="max_length",
+    )
     chunks = []
-    for i in range(0, len(tokens), chunk_size):
-        chunk_tokens = tokens[i:i+chunk_size]
-        # Add special tokens back
-        chunk_tokens = [tokenizer.cls_token_id] + chunk_tokens + [tokenizer.sep_token_id]
-        chunk_text_str = tokenizer.decode(chunk_tokens, skip_special_tokens=False, clean_up_tokenization_spaces=True)
-        # print(chunk_text_str)  # Debugging: print the chunked text
-        chunks.append(chunk_text_str)
+    # encoding["input_ids"] is a list of lists, one per chunk
+    for input_ids in encoding["input_ids"]:
+        text = tokenizer.decode(input_ids, skip_special_tokens=True).replace(" ", "").strip()
+        chunks.append(text)
     return chunks
 
 def expand_dataset(dataset):
@@ -61,7 +64,6 @@ def extract_text_from_pdf(pdf_path):
     except Exception as e:
         print(f"Error extracting text from {pdf_path}: {e}")
         return ""
-
 def predict_label_for_pdf(pdf_path, model, tokenizer, device):
     # Extract text from the PDF
     text = extract_text_from_pdf(pdf_path)
@@ -69,24 +71,24 @@ def predict_label_for_pdf(pdf_path, model, tokenizer, device):
         print(f"No text extracted from {pdf_path}")
         return None
 
-    # Split the full text into chunks that do not exceed 512 tokens
-    chunks = chunk_text(text, tokenizer, max_length=512)
+    # Tokenize the text
+    inputs = tokenizer(
+        text, 
+        padding="max_length", 
+        truncation=True, 
+        max_length=512, 
+        return_tensors="pt"
+    )
     
-    # Store logits from each chunk
-    all_logits = []
-    for chunk in chunks:
-        # Tokenize each chunk (padding and truncation ensure fixed size input)
-        inputs = tokenizer(chunk, padding="max_length", truncation=True, max_length=512, return_tensors="pt")
-        inputs = {key: value.to(device) for key, value in inputs.items()}
-        
-        with torch.no_grad():
-            outputs = model(**inputs)
-            logits = outputs.logits  
-            all_logits.append(logits)
+    # Move tensors to the device (GPU or CPU)
+    inputs = {key: value.to(device) for key, value in inputs.items()}
     
-    # Aggregate predictions by averaging the logits across chunks.
-    aggregated_logits = torch.mean(torch.cat(all_logits, dim=0), dim=0, keepdim=True)  # shape [1, num_labels]
-    predicted_label = torch.argmax(aggregated_logits, dim=1).item()
+    # Predict label
+    with torch.no_grad():
+        outputs = model(**inputs)
+        logits = outputs.logits
+        predicted_label = torch.argmax(logits, dim=1).item()
+
     return predicted_label
 
 def process_pdfs_after_training(directory_path, output_csv, model, tokenizer, device):
@@ -115,11 +117,13 @@ def process_pdfs_after_training(directory_path, output_csv, model, tokenizer, de
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train on a limited number of samples per class.")
-    parser.add_argument("--count", type=int, default=40, help="Number of 'YES' samples to use")
+    parser.add_argument("--count", type=int, default=20, help="Number of 'YES' samples to use")
     parser.add_argument("--epochs", type=int, default=2, help="Number of epochs to train")
+    parser.add_argument("--folder", type=str, default="waste_40", help="Folder name for the dataset")
     args = parser.parse_args()
 
-    waste_data = pd.read_csv("csv_data/waste_40.csv")
+    waste_data_path = f"csv_data/{args.folder}.csv"
+    waste_data = pd.read_csv(waste_data_path)
     # Filter and limit samples by label
     yes_samples = waste_data[waste_data["label"] == 1].head(args.count//2)
     no_samples = waste_data[waste_data["label"] == 0].head(args.count//2)
@@ -132,21 +136,22 @@ if __name__ == "__main__":
     # Convert your DataFrame to a Hugging Face Dataset
     dataset = Dataset.from_pandas(waste_data)
 
-    # Use the custom function to expand the dataset
-    dataset_chunked = expand_dataset(dataset)
     # Tokenize the chunked dataset
+    dataset_chunked = Dataset.from_dict(waste_data.to_dict(orient='list'))
     dataset_tokenized = dataset_chunked.map(tokenize_function, batched=True)
     dataset_tokenized.set_format(type="torch", columns=["input_ids", "attention_mask", "label"])
 
+    # random 
+    dataset_tokenized = dataset_tokenized.shuffle(seed=42)
     # Load the model 
     waste_model = DistilBertForSequenceClassification.from_pretrained('distilbert-base-uncased', num_labels=2)
-    waste_model.load_state_dict(torch.load("medical_modle.pth", map_location=device), strict=False)
+    waste_model.load_state_dict(torch.load("medical_modle.pth", map_location=device, weights_only=True), strict=False)
     waste_model = waste_model.to(device)
 
     # Training arguments
     training_args = TrainingArguments(
         output_dir="./temp",
-        evaluation_strategy="no",
+        eval_strategy="no",
         save_strategy="epoch",
         learning_rate=2e-5,
         per_device_train_batch_size=16,
@@ -170,7 +175,12 @@ if __name__ == "__main__":
     trainer.train()
 
     pdfs_dir = "pdf_data/test"
-    output_csv_path = f"result/test_predictions_{args.count}_{args.epochs}.csv"
+    # Create output directory if it doesn't exist
+    if not os.path.exists("result"):
+        os.makedirs("result")
+    if not os.path.exists(f"result/{args.folder}"):
+        os.makedirs(f"result/{args.folder}")
+    output_csv_path = f"result/{args.folder}/test_predictions_{args.count}_{args.epochs}_half.csv"
 
     process_pdfs_after_training(
         directory_path=pdfs_dir,
