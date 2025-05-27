@@ -13,23 +13,24 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 tokenizer = DistilBertTokenizer.from_pretrained('distilbert-base-uncased',clean_up_tokenization_spaces=True)
 accuracy_metric = evaluate.load("accuracy")
 
-def chunk_text(text, tokenizer, max_length=512, stride=256):
-    text = text.replace("\n", " ").strip()  # Clean up the text
-    # print(text)
-    encoding = tokenizer(
-        text,
-        truncation=True,
-        max_length=max_length,
-        stride=stride,
-        return_overflowing_tokens=True,
-        padding="max_length",
-    )
+def chunk_text(text, tokenizer, max_length=512):
+    # Encode without adding special tokens to get raw token ids
+    tokens = tokenizer.encode(text, add_special_tokens=False)
+    # Reserve two tokens for [CLS] and [SEP]
+    chunk_size = max_length - 2
     chunks = []
-    # encoding["input_ids"] is a list of lists, one per chunk
-    for input_ids in encoding["input_ids"]:
-        text = tokenizer.decode(input_ids, skip_special_tokens=True).replace(" ", "").strip()
-        chunks.append(text)
+    len_text = 0
+    for i in range(0, len(tokens), chunk_size):
+        chunk_tokens = tokens[i:i+chunk_size]
+        # Add special tokens back
+        chunk_tokens = [tokenizer.cls_token_id] + chunk_tokens + [tokenizer.sep_token_id]
+        chunk_text_str = tokenizer.decode(chunk_tokens, skip_special_tokens=False, clean_up_tokenization_spaces=True)
+        # print(chunk_text_str)  # Debugging: print the chunked text
+        chunks.append(chunk_text_str)
+        len_text += len(chunk_text_str)
+    # Remove any leading/trailing whitespace
     return chunks
+
 
 def expand_dataset(dataset):
     expanded_data = {"text": [], "label": []}
@@ -175,13 +176,14 @@ if __name__ == "__main__":
     # Fine-tune the model on the chunked training data
     trainer.train()
 
-    pdfs_dir = "pdf_data/test"
+    folder_test = "test"
+    pdfs_dir = f"pdf_data/{folder_test}"
     # Create output directory if it doesn't exist
     if not os.path.exists("result"):
         os.makedirs("result")
     if not os.path.exists(f"result/{args.folder}"):
         os.makedirs(f"result/{args.folder}")
-    output_csv_path = f"result/{args.folder}/test_predictions_{args.count}_{args.epochs}_half.csv"
+    output_csv_path = f"result/{args.folder}/{folder_test}_predictions_{args.count}_{args.epochs}_half.csv"
 
     process_pdfs_after_training(
         directory_path=pdfs_dir,

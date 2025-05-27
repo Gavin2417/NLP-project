@@ -1,13 +1,13 @@
 filename,predicted_label
 abah 2022.pdf,NO
-abdurrahman 2020.pdf,NO
-adebiyi 2020.pdf,NO
-bajyacharya 2021.pdf,NO
+abdurrahman 2020.pdf,YES
+adebiyi 2020.pdf,YES
+bajyacharya 2021.pdf,YES
 Das 2022.pdf,NO
 Lin 2013.pdf,NO
-tabian 2021.pdf,NO
+tabian 2021.pdf,YES
 timonen 2021.pdf,NO
-uttajug 2021.pdf,NO
+uttajug 2021.pdf,YES
 uttajug 2022.pdf,YES
 vreeland 2016.pdf,NO
 wu 2006.pdf,YES
