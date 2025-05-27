@@ -47,7 +47,7 @@ python convert_pdf_to_text.py
 ```
 This will create csv_data/data.csv containing: `text` and `label`. 
 
-### 3.Training
+### 3. Training
 1. Full‐Text Training : Train DistilBERT on full paper texts:
 ```bash
 python waste_burn_training_full.py \
