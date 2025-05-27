@@ -118,7 +118,7 @@ def process_pdfs_after_training(directory_path, output_csv, model, tokenizer, de
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train on a limited number of samples per class.")
     parser.add_argument("--count", type=int, default=40, help="Number of 'YES' samples to use")
-    parser.add_argument("--epochs", type=int, default=10, help="Number of epochs to train")
+    parser.add_argument("--epochs", type=int, default=4, help="Number of epochs to train")
     parser.add_argument("--folder", type=str, default="waste_40", help="Folder name for the dataset")
     args = parser.parse_args()
     
