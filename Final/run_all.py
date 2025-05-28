@@ -1,7 +1,7 @@
 import subprocess
 from tqdm import tqdm
 
-files_name = ['waste_40', 'waste_52']
+files_name = ['waste_40']
 base_counts = [10, 20, 40]
 epochs = [1, 2, 4, 7, 10]
 

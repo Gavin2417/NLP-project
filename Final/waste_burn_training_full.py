@@ -123,7 +123,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     waste_data_path = f"csv_data/{args.folder}.csv"
-    waste_data = pd.read_csv(waste_data_path)
+    waste_data = pd.read_csv(waste_data_path).sample(frac=1, random_state=42).reset_index(drop=True)
     # Filter and limit samples by label
     yes_samples = waste_data[waste_data["label"] == 1].head(args.count//2)
     no_samples = waste_data[waste_data["label"] == 0].head(args.count//2)
