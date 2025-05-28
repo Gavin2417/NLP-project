@@ -12,7 +12,7 @@ This repository provides tools to conduct a systematic review of “waste‐burn
 
 ## Project Structure
 ```
-
+Final
 ├── csv_data/   # (output) extracted texts in CSV format
 ├── pdf_data/   # raw PDF files organized by folder
 │ └── waste_40/ # example folder of 40 papers
@@ -22,6 +22,7 @@ This repository provides tools to conduct a systematic review of “waste‐burn
 │ └── WASTE_40/
 │ └── test_2_prediction_full.csv
 │
+├── medical_modle.pth           # pretrained medical Distilbert model
 ├── convert_pdf_to_text.py      # script: PDFs → csv_data/data.csv
 ├── waste_burn_training_full.py # train on full‐text
 ├── waste_burn_training_half.py # train on abstracts only
